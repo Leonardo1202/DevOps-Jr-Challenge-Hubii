@@ -27,8 +27,11 @@ hubii-devops-challenge/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml            # Pipeline GitHub Actions
+├── docs/
+│   ├── pipeline-success.png
+│   └── app-health.png
 ├── Dockerfile
-├── SECURITY.md               # Documentação de segurança
+├── SECURITY.md
 └── README.md
 ```
 
@@ -59,6 +62,10 @@ Acesse: [http://localhost:8080/health](http://localhost:8080/health)
 }
 ```
 
+### ✅ Aplicação rodando
+
+![App Health Endpoint](docs/app-health.png)
+
 ### Decisões técnicas
 - **Flask** foi escolhido por ser leve e direto ao ponto para uma API simples.
 - **Gunicorn** é usado como servidor WSGI em produção (mais estável que o servidor embutido do Flask).
@@ -75,7 +82,7 @@ Acesse: [http://localhost:8080/health](http://localhost:8080/health)
 docker build -t hubii-app:local .
 
 # Run
-docker run -p 8080:8080 -e APP_ENV=staging hubii-app:local
+docker run -p 8080:8080 -e APP_ENV=production hubii-app:local
 
 # Teste
 curl http://localhost:8080/health
@@ -111,9 +118,6 @@ curl http://localhost:8080/health
 
 ```bash
 # 1. Criar namespace e secret
-kubectl apply -f k8s/namespace-and-secret.yaml
-
-# Ou criar o secret diretamente (recomendado):
 kubectl create secret generic hubii-app-secret \
   --from-literal=app-env=production \
   -n hubii
@@ -143,18 +147,22 @@ kubectl get svc -n hubii
 
 O pipeline está em `.github/workflows/ci.yml` e é executado em todo push/PR para `main`.
 
+### ✅ Pipeline em execução — ambos os jobs com sucesso
+
+![CI/CD Pipeline Success](docs/pipeline-success.png)
+
 ### Etapas
 
 ```
-push/PR → [lint] → [build + scan + push]
+push/PR → [Lint & Validate] → [Build & Security Scan]
 ```
 
 | Etapa | Ferramenta | O que faz |
 |---|---|---|
 | **Lint Python** | `flake8` | Valida estilo e erros no código |
 | **Validate K8s** | `kubeval` | Verifica sintaxe dos manifestos Kubernetes |
-| **Build imagem** | Docker Buildx | Constrói a imagem com cache otimizado |
-| **Scan de segurança** | **Trivy** | Escaneia CVEs CRITICAL/HIGH — falha o pipeline se encontrar |
+| **Build imagem** | Docker | Constrói a imagem |
+| **Scan de segurança** | **Trivy** | Escaneia CVEs CRITICAL/HIGH e reporta no Security tab |
 | **Push** | GHCR | Publica a imagem no GitHub Container Registry (apenas em `main`) |
 
 > O pipeline **falha imediatamente** em qualquer etapa com erro, garantindo que código com problemas não avance.
@@ -165,6 +173,7 @@ push/PR → [lint] → [build + scan + push]
 - Implementar **deploy automático** para staging após build bem-sucedido.
 - Adicionar gate de aprovação manual para deploy em produção.
 - Usar **OIDC** para autenticar com a cloud sem necessidade de chaves estáticas.
+- Bloquear pipeline em CVEs CRITICAL após migrar para imagem distroless.
 
 ---
 
@@ -177,7 +186,6 @@ cd terraform
 
 # Copiar e preencher variáveis
 cp terraform.tfvars.example terraform.tfvars
-# Edite terraform.tfvars com seus valores
 
 # Inicializar
 terraform init
@@ -235,7 +243,7 @@ Consulte o arquivo [`SECURITY.md`](./SECURITY.md) para a documentação completa
 - [x] Pipeline GitHub Actions com lint, build, Trivy scan
 - [x] Terraform com variáveis, resource e outputs
 - [x] Documentação de segurança (`SECURITY.md`)
-- [x] README completo
+- [x] README completo com evidências de execução
 
 ---
 

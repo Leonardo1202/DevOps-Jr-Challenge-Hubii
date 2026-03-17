@@ -6,11 +6,8 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/hubii-devops-challenge
-
 jobs:
-  # ─── Job 1: Lint & Validate
+  # ─── Job 1: Lint & Validate ────────────────────────────────────────────────
   lint:
     name: Lint & Validate
     runs-on: ubuntu-latest
@@ -35,7 +32,7 @@ jobs:
         with:
           files: k8s/
 
-  # ─── Job 2: Build & Scan
+  # ─── Job 2: Build & Scan ──────────────────────────────────────────────────
   build-and-scan:
     name: Build & Security Scan
     runs-on: ubuntu-latest
@@ -63,12 +60,14 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          IMAGE=ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/hubii-devops-challenge:${{ github.sha }}
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          docker build -t $IMAGE .
 
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          image-ref: ${{ env.IMAGE }}
           format: "sarif"
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
@@ -83,6 +82,7 @@ jobs:
       - name: Push image to registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.IMAGE_NAME }}:latest
-          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ env.IMAGE_NAME }}:latest
+          IMAGE_LATEST=ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/hubii-devops-challenge:latest
+          docker tag ${{ env.IMAGE }} $IMAGE_LATEST
+          docker push ${{ env.IMAGE }}
+          docker push $IMAGE_LATEST

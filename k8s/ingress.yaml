@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hubii-app-ingress
+  namespace: hubii
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - hubii-app.challenge.com
+      secretName: hubii-app-tls
+  rules:
+    - host: hubii-app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hubii-app-svc
+                port:
+                  number: 80

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hubii-app-svc
+  namespace: hubii
+  labels:
+    app: hubii-app
+spec:
+  selector:
+    app: hubii-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
